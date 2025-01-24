@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
 
-const AddCustomer = ({ fetchAllCustomers }) => {
+const AddCustomer = ({ addCustomer }) => {
   const [newCustomer, setNewCustomer] = useState({
     customerCode: "",
     customerName: "",
@@ -15,68 +14,72 @@ const AddCustomer = ({ fetchAllCustomers }) => {
     isPerson: false,
   });
 
-  const [errors, setErrors] = useState({}); // Для хранения ошибок
+  const [errors, setErrors] = useState({});
 
-  // Проверки на стороне клиента
+  
   const validateInputs = () => {
     const newErrors = {};
 
-    if (!newCustomer.customerCode.trim()) {
-      newErrors.customerCode = "Код клиента обязателен.";
+    
+    if (!newCustomer.customerName.trim() || !/^[A-Za-zА-Яа-яЁё\s]+$/.test(newCustomer.customerName)) {
+      newErrors.customerName = "Имя клиента должно содержать только буквы.";
     }
 
-    if (!newCustomer.customerName.trim()) {
-      newErrors.customerName = "Имя клиента обязательно.";
+    
+    if (!/^[0-9]{10}$/.test(newCustomer.customerCode)) {
+      newErrors.customerCode = "Код клиента должен содержать 10 цифр.";
     }
 
-    if (newCustomer.customerInn && !/^\d{12}$/.test(newCustomer.customerInn)) {
-      newErrors.customerInn = "ИНН должен содержать ровно 12 цифр.";
+    
+    if (!/^[0-9]{12}$/.test(newCustomer.customerInn)) {
+      newErrors.customerInn = "ИНН должен содержать 12 цифр.";
     }
 
-    if (newCustomer.customerKpp && !/^\d{9}$/.test(newCustomer.customerKpp)) {
-      newErrors.customerKpp = "КПП должен содержать ровно 9 цифр.";
+    
+    if (!/^[0-9]{9}$/.test(newCustomer.customerKpp)) {
+      newErrors.customerKpp = "КПП должен содержать 9 цифр.";
     }
 
-    if (newCustomer.customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newCustomer.customerEmail)) {
-      newErrors.customerEmail = "Введите валидный email.";
+    
+    if (!newCustomer.customerEmail.trim() || !/\S+@\S+\.\S+/.test(newCustomer.customerEmail)) {
+      newErrors.customerEmail = "Укажите корректный email.";
+    }
+
+    
+    if (!/^[0-9]{10}$/.test(newCustomer.customerCodeMain)) {
+      newErrors.customerCodeMain = "Основной код клиента должен содержать 10 цифр.";
     }
 
     return newErrors;
   };
 
-  // Метод для добавления нового клиента
-  const addCustomer = async () => {
+  
+  const handleAdd = () => {
     const validationErrors = validateInputs();
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      return; // Если есть ошибки, останавливаем отправку
+      return;
     }
 
-    try {
-      await axios.post("http://localhost:9090/api/customers/add", newCustomer);
-      alert("Клиент успешно добавлен!");
-      fetchAllCustomers(); // Обновление списка клиентов после добавления
-      setNewCustomer({
-        customerCode: "",
-        customerName: "",
-        customerInn: "",
-        customerKpp: "",
-        customerLegalAddress: "",
-        customerPostalAddress: "",
-        customerEmail: "",
-        customerCodeMain: "",
-        isOrganization: false,
-        isPerson: false,
-      });
-      setErrors({});
-    } catch (error) {
-      console.error("Ошибка при добавлении клиента:", error);
-      alert("Ошибка при добавлении клиента.");
-    }
+    addCustomer(newCustomer); 
+
+    
+    setNewCustomer({
+      customerCode: "",
+      customerName: "",
+      customerInn: "",
+      customerKpp: "",
+      customerLegalAddress: "",
+      customerPostalAddress: "",
+      customerEmail: "",
+      customerCodeMain: "",
+      isOrganization: false,
+      isPerson: false,
+    });
   };
 
-  // Обработчик для чекбоксов
+ 
   const handleCheckboxChange = (field) => {
     setNewCustomer((prev) => ({
       ...prev,
@@ -88,48 +91,49 @@ const AddCustomer = ({ fetchAllCustomers }) => {
   return (
     <div>
       <h2>Добавить клиента</h2>
+
       <div>
         <label>Код клиента:</label>
         <input
           type="text"
-          placeholder="Код клиента (обязательно)"
+          placeholder="Код клиента"
           value={newCustomer.customerCode}
           onChange={(e) => setNewCustomer({ ...newCustomer, customerCode: e.target.value })}
         />
-        {errors.customerCode && <p style={{ color: "red" }}>{errors.customerCode}</p>}
+        {errors.customerCode && <span className="error">{errors.customerCode}</span>}
       </div>
 
       <div>
         <label>Имя клиента:</label>
         <input
           type="text"
-          placeholder="Имя клиента (обязательно)"
+          placeholder="Имя клиента"
           value={newCustomer.customerName}
           onChange={(e) => setNewCustomer({ ...newCustomer, customerName: e.target.value })}
         />
-        {errors.customerName && <p style={{ color: "red" }}>{errors.customerName}</p>}
+        {errors.customerName && <span className="error">{errors.customerName}</span>}
       </div>
 
       <div>
         <label>ИНН:</label>
         <input
           type="text"
-          placeholder="ИНН (ровно 12 цифр)"
+          placeholder="ИНН (12 цифр)"
           value={newCustomer.customerInn}
           onChange={(e) => setNewCustomer({ ...newCustomer, customerInn: e.target.value })}
         />
-        {errors.customerInn && <p style={{ color: "red" }}>{errors.customerInn}</p>}
+        {errors.customerInn && <span className="error">{errors.customerInn}</span>}
       </div>
 
       <div>
         <label>КПП:</label>
         <input
           type="text"
-          placeholder="КПП (ровно 9 цифр)"
+          placeholder="КПП (9 цифр)"
           value={newCustomer.customerKpp}
           onChange={(e) => setNewCustomer({ ...newCustomer, customerKpp: e.target.value })}
         />
-        {errors.customerKpp && <p style={{ color: "red" }}>{errors.customerKpp}</p>}
+        {errors.customerKpp && <span className="error">{errors.customerKpp}</span>}
       </div>
 
       <div>
@@ -160,7 +164,7 @@ const AddCustomer = ({ fetchAllCustomers }) => {
           value={newCustomer.customerEmail}
           onChange={(e) => setNewCustomer({ ...newCustomer, customerEmail: e.target.value })}
         />
-        {errors.customerEmail && <p style={{ color: "red" }}>{errors.customerEmail}</p>}
+        {errors.customerEmail && <span className="error">{errors.customerEmail}</span>}
       </div>
 
       <div>
@@ -171,6 +175,7 @@ const AddCustomer = ({ fetchAllCustomers }) => {
           value={newCustomer.customerCodeMain}
           onChange={(e) => setNewCustomer({ ...newCustomer, customerCodeMain: e.target.value })}
         />
+        {errors.customerCodeMain && <span className="error">{errors.customerCodeMain}</span>}
       </div>
 
       <div>
@@ -191,7 +196,7 @@ const AddCustomer = ({ fetchAllCustomers }) => {
         />
       </div>
 
-      <button onClick={addCustomer}>Добавить клиента</button>
+      <button onClick={handleAdd}>Добавить клиента</button>
     </div>
   );
 };

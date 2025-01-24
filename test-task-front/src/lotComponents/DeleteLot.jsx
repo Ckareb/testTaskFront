@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 
 const DeleteLot = ({ onDelete }) => {
-  const [customerCode, setCustomerCode] = useState("");
+  const [lotName, setlotName] = useState("");
 
   const handleDelete = () => {
-    onDelete(customerCode);
+    onDelete(lotName);
   };
 
   return (
@@ -12,9 +12,9 @@ const DeleteLot = ({ onDelete }) => {
       <h2>Удаление лота</h2>
       <input
         type="text"
-        placeholder="Введите customerCode"
-        value={customerCode}
-        onChange={(e) => setCustomerCode(e.target.value)}
+        placeholder="Введите имя лота"
+        value={lotName}
+        onChange={(e) => setlotName(e.target.value)}
       />
       <button onClick={handleDelete}>Удалить</button>
     </div>

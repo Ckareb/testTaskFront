@@ -1,28 +1,62 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import axios from "axios";
 
-const UpdateLot = ({ fetchAllLots }) => {
+
+const UpdateLot = ({ updateLot }) => {
   const [searchValue, setSearchValue] = useState("");
   const [lotData, setLotData] = useState({
-    lotName: "",           // Название лота
-    customerCode: "",      // Код клиента
-    price: "",             // Стоимость
-    currencyCode: "",      // Код валюты
-    ndsRate: "",           // Ставка НДС
-    placeDelivery: "",     // Место доставки
-    dateDelivery: "",      // Дата доставки
+    lotName: "",
+    customerCode: "",
+    price: "",
+    currencyCode: "",
+    ndsRate: "",
+    placeDelivery: "",
+    dateDelivery: "",
   });
+  const [errors, setErrors] = useState({}); 
+  const [lotUpdated, setLotUpdated] = useState(false); 
 
-  // Загрузка данных лота
+  const validateInputs = () => {
+    const newErrors = {};
+    const lotNameRegex = /^[A-Za-zА-Яа-яЁё\s]+$/;
+    if (!lotData.lotName.trim() || lotData.lotName.length > 255 || !lotNameRegex.test(lotData.lotName)) {
+      newErrors.lotName = "Название лота должно содержать только русские и английские буквы.";
+    }
+
+    const customerCodeRegex = /^[0-9]{1,10}$/;
+    if (!String(lotData.customerCode).trim() || !customerCodeRegex.test(lotData.customerCode)) {
+      newErrors.customerCode = "Код клиента должен содержать только цифры и быть до 10 символов.";
+    }
+
+    const priceRegex = /^\d+(\.\d{1,2})?$/;
+    if (!String(lotData.price).trim() || !priceRegex.test(String(lotData.price)) || String(lotData.price).length > 15) {
+      newErrors.price = "Стоимость должна быть числом, не более 15 символов.";
+    }
+
+    if (!lotData.currencyCode || lotData.currencyCode.length > 3) {
+      newErrors.currencyCode = "Код валюты обязателен и должен быть до 3 символов.";
+    }
+
+    if (!lotData.ndsRate || lotData.ndsRate.length > 20) {
+      newErrors.ndsRate = "Ставка НДС обязательна и должна быть до 20 символов.";
+    }
+
+    const placeDeliveryRegex = /^[A-Za-zА-Яа-яЁё\s]+$/;
+    if (!lotData.placeDelivery.trim() || lotData.placeDelivery.length > 255 || !placeDeliveryRegex.test(lotData.placeDelivery)) {
+      newErrors.placeDelivery = "Место доставки должно содержать только русские и английские буквы.";
+    }
+
+    if (!lotData.dateDelivery.trim()) {
+      newErrors.dateDelivery = "Дата доставки обязательна.";
+    }
+
+    return newErrors;
+  };
+
   const fetchLotData = async () => {
     try {
       const response = await axios.get(`http://localhost:9090/api/lots/name/${searchValue}`);
-      
-      // Логируем полученные данные, чтобы понять структуру
-      console.log("Ответ от API:", response.data);
-
       if (response.data && response.data[0]) {
-        // Просто передаем данные напрямую в setLotData
         setLotData(response.data[0]);
       } else {
         alert("Лот с указанным именем не найден!");
@@ -33,109 +67,150 @@ const UpdateLot = ({ fetchAllLots }) => {
     }
   };
 
-  // Обновление данных лота
-  const updateLot = async () => {
-    try {
-      await axios.put(`http://localhost:9090/api/lots/update/${searchValue}`, lotData);
-      alert("Данные лота успешно обновлены!");
-      fetchAllLots(); // После успешного обновления лотов можно обновить список лотов
-    } catch (error) {
-      console.error("Ошибка обновления лота:", error);
-      alert("Ошибка обновления данных.");
+  const handleSubmit = () => {
+    const validationErrors = validateInputs();
+
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return; 
     }
+
+    
+    updateLot(searchValue, lotData);
+
+    
+    setLotUpdated(true);
+
+    
+    setLotData({
+      lotName: "",
+      customerCode: "",
+      price: "",
+      currencyCode: "",
+      ndsRate: "",
+      placeDelivery: "",
+      dateDelivery: "",
+    });
+
+    
+    setTimeout(() => {
+      setLotUpdated(false); 
+    }, 2000);
   };
 
-  // useEffect для логирования изменений lotData
-  useEffect(() => {
-    console.log("lotData изменено:", lotData); // Логируем весь объект lotData
-    if (lotData && lotData.lotName) {
-      console.log("lotData после обновления:", lotData.lotName);
-    }
-  }, [lotData]); // Срабатывает, когда lotData изменяется
-
-  // Изменение значений input
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setLotData((prevData) => ({
-      ...prevData,
-      [name]: value,
-    }));
+  const handleChange = (name, value) => {
+    setLotData((prevData) => ({ ...prevData, [name]: value }));
   };
 
   return (
+<div className="lot-update-form">
+  <h2>Обновить данные лота</h2>
+
+  <div className="form-group">
+    <label>Введите имя лота для поиска:</label>
+    <input
+      type="text"
+      value={searchValue}
+      onChange={({ target }) => setSearchValue(target.value)}
+    />
+    <button onClick={fetchLotData}>Загрузить данные лота</button>
+  </div>
+
+ 
+  {lotUpdated ? (
     <div>
-      <h2>Обновить данные лота</h2>
+      <h3>Лот успешно обновлён!</h3>
+    </div>
+  ) : (
+    lotData.lotName && (
+      <div>
+        <h3>Информация о лоте</h3>
+        <div className="form-group">
+          <label>Название лота:</label>
+          <input
+            type="text"
+            value={lotData.lotName}
+            onChange={({ target }) => handleChange("lotName", target.value)}
+            maxLength={255}
+          />
+          {errors.lotName && <span className="error">{errors.lotName}</span>}
+        </div>
 
-      <input
-        type="text"
-        placeholder="Введите имя лота для поиска"
-        value={searchValue}
-        onChange={(e) => setSearchValue(e.target.value)}
-        maxLength={100}
-      />
-      <button onClick={fetchLotData}>Загрузить данные лота</button>
+        <div className="form-group">
+          <label>Код клиента:</label>
+          <input
+            type="text"
+            value={lotData.customerCode}
+            onChange={({ target }) => handleChange("customerCode", target.value)}
+            maxLength={10}
+          />
+          {errors.customerCode && <span className="error">{errors.customerCode}</span>}
+        </div>
 
-      {lotData.lotName && (
-        <div>
-          <h3>Информация о лоте</h3>
+        <div className="form-group">
+          <label>Стоимость:</label>
           <input
-            type="text"
-            placeholder="Название лота"
-            name="lotName"
-            value={lotData.lotName || ""}
-            onChange={handleChange}
+            type="number"
+            value={lotData.price}
+            onChange={({ target }) => handleChange("price", target.value)}
+            min="0"
+            step="0.01"
           />
-          <input
-            type="text"
-            placeholder="Код клиента"
-            name="customerCode"
-            value={lotData.customerCode || ""}
-            onChange={handleChange}
-          />
-          <input
-            type="text"
-            placeholder="Стоимость"
-            name="price"
-            value={lotData.price || ""}
-            onChange={handleChange}
-          />
+          {errors.price && <span className="error">{errors.price}</span>}
+        </div>
+
+        <div className="form-group">
+          <label>Валюта:</label>
           <select
-            name="currencyCode"
-            value={lotData.currencyCode || ""}
-            onChange={handleChange}
+            value={lotData.currencyCode}
+            onChange={({ target }) => handleChange("currencyCode", target.value)}
           >
-            <option value="">Выберите валюту</option>
             <option value="RUB">RUB</option>
             <option value="USD">USD</option>
             <option value="EUR">EUR</option>
           </select>
+          {errors.currencyCode && <span className="error">{errors.currencyCode}</span>}
+        </div>
+
+        <div className="form-group">
+          <label>Ставка НДС:</label>
           <select
-            name="ndsRate"
-            value={lotData.ndsRate || ""}
-            onChange={handleChange}
+            value={lotData.ndsRate}
+            onChange={({ target }) => handleChange("ndsRate", target.value)}
           >
-            <option value="">Выберите ставку НДС</option>
             <option value="Без НДС">Без НДС</option>
             <option value="18%">18%</option>
             <option value="20%">20%</option>
           </select>
+          {errors.ndsRate && <span className="error">{errors.ndsRate}</span>}
+        </div>
+
+        <div className="form-group">
+          <label>Место доставки:</label>
           <input
             type="text"
-            placeholder="Место доставки"
-            name="placeDelivery"
-            value={lotData.placeDelivery || ""}
-            onChange={handleChange}
+            value={lotData.placeDelivery}
+            onChange={({ target }) => handleChange("placeDelivery", target.value)}
+            maxLength={255}
           />
+          {errors.placeDelivery && <span className="error">{errors.placeDelivery}</span>}
+        </div>
+
+        <div className="form-group">
+          <label>Дата доставки:</label>
           <input
             type="datetime-local"
-            name="dateDelivery"
-            value={lotData.dateDelivery || ""}
-            onChange={handleChange}
+            value={lotData.dateDelivery}
+            onChange={({ target }) => handleChange("dateDelivery", target.value)}
           />
-          <button onClick={updateLot}>Обновить</button>
+          {errors.dateDelivery && <span className="error">{errors.dateDelivery}</span>}
         </div>
-      )}
-    </div>
+
+        <button onClick={handleSubmit}>Обновить</button>
+      </div>
+    )
+  )}
+</div>
   );
 };
 

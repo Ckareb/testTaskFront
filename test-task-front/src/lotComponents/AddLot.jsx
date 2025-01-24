@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-import axios from "axios";
 
-const AddLot = ({ fetchAllLots }) => {
+const AddLot = ({ addLot }) => {
   const [newLot, setNewLot] = useState({
     lotName: "",
     customerCode: "",
@@ -12,34 +11,37 @@ const AddLot = ({ fetchAllLots }) => {
     dateDelivery: "",
   });
 
-  const [errors, setErrors] = useState({}); // Для хранения ошибок
+  const [errors, setErrors] = useState({});
 
-  // Проверки на стороне клиента
   const validateInputs = () => {
     const newErrors = {};
+    const lotNameRegex = /^[A-Za-zА-Яа-яЁё\s]+$/;
 
-    if (!newLot.lotName.trim()) {
-      newErrors.lotName = "Название лота обязательно.";
+    if (!newLot.lotName.trim() || newLot.lotName.length > 255 || !lotNameRegex.test(newLot.lotName)) {
+      newErrors.lotName = "Название лота должно содержать только русские или английские буквы.";
     }
 
-    if (!newLot.customerCode.trim()) {
-      newErrors.customerCode = "Код клиента обязателен.";
+    const customerCodeRegex = /^[0-9]{1,10}$/;
+    if (!newLot.customerCode.trim() || !customerCodeRegex.test(newLot.customerCode)) {
+      newErrors.customerCode = "Код клиента должен содержать только цифры и быть до 10 символов.";
     }
 
-    if (!newLot.price.trim() || isNaN(newLot.price) || Number(newLot.price) <= 0) {
-      newErrors.price = "Стоимость должна быть числом больше нуля.";
+    const priceRegex = /^\d+(\.\d{1,2})?$/;
+    if (!newLot.price.trim() || !priceRegex.test(newLot.price) || newLot.price.length > 15) {
+      newErrors.price = "Стоимость должна быть числом, не более 15 символов.";
     }
 
-    if (!newLot.currencyCode) {
-      newErrors.currencyCode = "Валюта обязательна.";
+    if (!newLot.currencyCode || newLot.currencyCode.length > 3) {
+      newErrors.currencyCode = "Не должен быть пустым";
     }
 
-    if (!newLot.ndsRate) {
-      newErrors.ndsRate = "Ставка НДС обязательна.";
+    if (!newLot.ndsRate || newLot.ndsRate !== "Без НДС") {
+      newErrors.ndsRate = "Не должен быть пустым";
     }
 
-    if (!newLot.placeDelivery.trim()) {
-      newErrors.placeDelivery = "Место доставки обязательно.";
+    const placeDeliveryRegex = /^[A-Za-zА-Яа-яЁё\s]+$/;
+    if (!newLot.placeDelivery.trim() || newLot.placeDelivery.length > 255 || !placeDeliveryRegex.test(newLot.placeDelivery)) {
+      newErrors.placeDelivery = "Место доставки должно содержать только русские и английские буквы.";
     }
 
     if (!newLot.dateDelivery.trim()) {
@@ -49,32 +51,25 @@ const AddLot = ({ fetchAllLots }) => {
     return newErrors;
   };
 
-  // Метод для добавления нового лота
-  const addLot = async () => {
+  const handleAdd = () => {
     const validationErrors = validateInputs();
 
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
-      return; // Если есть ошибки, останавливаем отправку
+      return;
     }
 
-    try {
-      await axios.post("http://localhost:9090/api/lots/add", newLot);
-      alert("Лот успешно добавлен!");
-      setNewLot({
-        lotName: "",
-        customerCode: "",
-        price: "",
-        currencyCode: "",
-        ndsRate: "",
-        placeDelivery: "",
-        dateDelivery: "",
-      });
-      setErrors({});
-    } catch (error) {
-      console.error("Ошибка при добавлении лота:", error);
-      alert("Ошибка при добавлении лота.");
-    }
+    addLot(newLot); 
+
+    setNewLot({
+      lotName: "",
+      customerCode: "",
+      price: "",
+      currencyCode: "",
+      ndsRate: "",
+      placeDelivery: "",
+      dateDelivery: "",
+    }); 
   };
 
   return (
@@ -85,33 +80,33 @@ const AddLot = ({ fetchAllLots }) => {
         <label>Название лота:</label>
         <input
           type="text"
-          placeholder="Название лота (обязательно)"
+          placeholder="Название лота"
           value={newLot.lotName}
           onChange={(e) => setNewLot({ ...newLot, lotName: e.target.value })}
         />
-        {errors.lotName && <p style={{ color: "red" }}>{errors.lotName}</p>}
+        {errors.lotName && <span className="error">{errors.lotName}</span>}
       </div>
 
       <div>
         <label>Код клиента:</label>
         <input
           type="text"
-          placeholder="Код клиента (обязательно)"
+          placeholder="Код клиента"
           value={newLot.customerCode}
           onChange={(e) => setNewLot({ ...newLot, customerCode: e.target.value })}
         />
-        {errors.customerCode && <p style={{ color: "red" }}>{errors.customerCode}</p>}
+        {errors.customerCode && <span className="error">{errors.customerCode}</span>}
       </div>
 
       <div>
         <label>Стоимость:</label>
         <input
           type="text"
-          placeholder="Стоимость (обязательно)"
+          placeholder="Стоимость"
           value={newLot.price}
           onChange={(e) => setNewLot({ ...newLot, price: e.target.value })}
         />
-        {errors.price && <p style={{ color: "red" }}>{errors.price}</p>}
+        {errors.price && <span className="error">{errors.price}</span>}
       </div>
 
       <div>
@@ -120,12 +115,12 @@ const AddLot = ({ fetchAllLots }) => {
           value={newLot.currencyCode}
           onChange={(e) => setNewLot({ ...newLot, currencyCode: e.target.value })}
         >
-          <option value="">Выберите валюту</option>
+          <option value="Выберите Валюту">Выберите Валюту</option>
           <option value="RUB">RUB</option>
           <option value="USD">USD</option>
           <option value="EUR">EUR</option>
         </select>
-        {errors.currencyCode && <p style={{ color: "red" }}>{errors.currencyCode}</p>}
+        {errors.currencyCode && <span className="error">{errors.currencyCode}</span>}
       </div>
 
       <div>
@@ -134,23 +129,23 @@ const AddLot = ({ fetchAllLots }) => {
           value={newLot.ndsRate}
           onChange={(e) => setNewLot({ ...newLot, ndsRate: e.target.value })}
         >
-          <option value="">Выберите ставку НДС</option>
+          <option value="Выберите Ставку НДС">Выберите Ставку НДС</option>
           <option value="Без НДС">Без НДС</option>
           <option value="18%">18%</option>
           <option value="20%">20%</option>
         </select>
-        {errors.ndsRate && <p style={{ color: "red" }}>{errors.ndsRate}</p>}
+        {errors.ndsRate && <span className="error">{errors.ndsRate}</span>}
       </div>
 
       <div>
         <label>Место доставки:</label>
         <input
           type="text"
-          placeholder="Место доставки (обязательно)"
+          placeholder="Место доставки"
           value={newLot.placeDelivery}
           onChange={(e) => setNewLot({ ...newLot, placeDelivery: e.target.value })}
         />
-        {errors.placeDelivery && <p style={{ color: "red" }}>{errors.placeDelivery}</p>}
+        {errors.placeDelivery && <span className="error">{errors.placeDelivery}</span>}
       </div>
 
       <div>
@@ -160,10 +155,10 @@ const AddLot = ({ fetchAllLots }) => {
           value={newLot.dateDelivery}
           onChange={(e) => setNewLot({ ...newLot, dateDelivery: e.target.value })}
         />
-        {errors.dateDelivery && <p style={{ color: "red" }}>{errors.dateDelivery}</p>}
+        {errors.dateDelivery && <span className="error">{errors.dateDelivery}</span>}
       </div>
 
-      <button onClick={addLot}>Добавить лот</button>
+      <button onClick={handleAdd}>Добавить лот</button>
     </div>
   );
 };

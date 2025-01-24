@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import axios from "axios";
 
-const UpdateCustomer = ({ fetchAllCustomers }) => {
-  const [customerCodeMain, setCustomerCodeMain] = useState(""); // Код клиента для поиска
+const UpdateCustomer = ({ updateCustomer}) => {
+  const [customerCodeMain, setCustomerCodeMain] = useState(""); 
   const [customerData, setCustomerData] = useState({
     customerCode: "",
     customerName: "",
@@ -14,145 +14,246 @@ const UpdateCustomer = ({ fetchAllCustomers }) => {
     isOrganization: false,
     isPerson: false,
   });
+  const [errors, setErrors] = useState({});
+  const [customerUpdated, setCustomerUpdatedState] = useState(false); 
+  const [loading, setLoading] = useState(false); 
 
-  // Метод для загрузки данных клиента по customerCodeMain
+  
+const validateInputs = () => {
+  const newErrors = {};
+
+  
+  const nameRegex = /^[A-Za-zА-Яа-яЁё\s]+$/;
+  if (!customerData.customerName.trim() || !nameRegex.test(customerData.customerName)) {
+    newErrors.customerName = "Имя клиента должно содержать только буквы.";
+  }
+
+  
+  if (!/^[0-9]{10}$/.test(customerData.customerCode)) {
+    newErrors.customerCode = "Код клиента должен содержать 10 цифр.";
+  }
+
+  
+  if (!/^[0-9]{12}$/.test(customerData.customerInn)) {
+    newErrors.customerInn = "ИНН должен содержать 12 цифр.";
+  }
+
+  
+  if (!/^[0-9]{9}$/.test(customerData.customerKpp)) {
+    newErrors.customerKpp = "КПП должен содержать 9 цифр.";
+  }
+
+  
+  if (!customerData.customerEmail.trim() || !/\S+@\S+\.\S+/.test(customerData.customerEmail)) {
+    newErrors.customerEmail = "Укажите корректный email.";
+  }
+
+  
+  if (!/^[0-9]{10}$/.test(customerData.customerCodeMain)) {
+    newErrors.customerCodeMain = "Основной код клиента должен содержать 10 цифр.";
+  }
+
+  return newErrors;
+};
+
+
+  
   const fetchCustomerData = async () => {
+    setLoading(true); 
     try {
       const response = await axios.get(`http://localhost:9090/api/customers/codeMain/${customerCodeMain}`);
       if (response.data) {
-        setCustomerData(response.data); // Заполняем данные клиента в state
+        setCustomerData(response.data);
+        setCustomerUpdatedState(false); 
       } else {
         alert("Клиент с указанным кодом не найден!");
       }
     } catch (error) {
       console.error("Ошибка при загрузке данных клиента:", error);
       alert("Ошибка при загрузке данных клиента.");
+    } finally {
+      setLoading(false); 
     }
   };
 
-  // Метод для обновления данных клиента
-  const updateCustomer = async () => {
-    try {
-      await axios.put(`http://localhost:9090/api/customers/update/${customerCodeMain}`, customerData);
-      alert("Данные клиента успешно обновлены!");
-    } catch (error) {
-      console.error("Ошибка при обновлении данных клиента:", error);
-      alert("Ошибка при обновлении данных клиента.");
+  
+  const updateCustomerData = () => {
+    const validationErrors = validateInputs();
+    if (Object.keys(validationErrors).length > 0) {
+      setErrors(validationErrors);
+      return;
     }
+
+    
+    updateCustomer(customerCodeMain, customerData);
+    setCustomerUpdatedState(true); 
+
+    
+    setTimeout(() => {
+      setCustomerUpdatedState(false); 
+      setCustomerData({
+        customerCode: "",
+        customerName: "",
+        customerInn: "",
+        customerKpp: "",
+        customerLegalAddress: "",
+        customerPostalAddress: "",
+        customerEmail: "",
+        isOrganization: false,
+        isPerson: false,
+      }); 
+    }, 2000); 
   };
 
-  // Обработчик изменения input с ограничениями
+  
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
 
-    let newValue = value;
-
-    // Ограничение длины для определенных полей
-    if (name === "customerCode" && value.length > 10) {
-      newValue = value.slice(0, 10);
-    } else if (name === "customerInn" && value.length > 12) {
-      newValue = value.slice(0, 12);
-    } else if (name === "customerKpp" && value.length > 9) {
-      newValue = value.slice(0, 9);
+    if (name === "isOrganization" && checked) {
+      setCustomerData({ ...customerData, isOrganization: true, isPerson: false });
+    } else if (name === "isPerson" && checked) {
+      setCustomerData({ ...customerData, isOrganization: false, isPerson: true });
+    } else {
+      setCustomerData({
+        ...customerData,
+        [name]: type === "checkbox" ? checked : value,
+      });
     }
-
-    setCustomerData({
-      ...customerData,
-      [name]: type === "checkbox" ? checked : newValue, // Обработка чекбоксов и текстовых полей
-    });
   };
 
   return (
     <div>
       <h2>Обновить данные клиента</h2>
-      <input
-        type="text"
-        placeholder="Введите customerCodeMain для поиска"
-        value={customerCodeMain}
-        onChange={(e) => setCustomerCodeMain(e.target.value)}
-        maxLength={10} // Ограничение длины
-      />
-      <button onClick={fetchCustomerData}>Загрузить данные клиента</button>
 
-      {customerData.customerCode && (
-        <div> 
-          <h3>Информация о клиенте:</h3>
-          <input
-            type="text"
-            placeholder="Код клиента"
-            name="customerCode"
-            value={customerData.customerCode}
-            onChange={handleChange}
-            maxLength={10} // Ограничение длины
-          />
-          <input
-            type="text"
-            placeholder="Имя клиента"
-            name="customerName"
-            value={customerData.customerName}
-            onChange={handleChange}
-            maxLength={50} // Ограничение длины
-          />
-          <input
-            type="text"
-            placeholder="ИНН"
-            name="customerInn"
-            value={customerData.customerInn}
-            onChange={handleChange}
-            maxLength={12} // Ограничение длины
-          />
-          <input
-            type="text"
-            placeholder="КПП"
-            name="customerKpp"
-            value={customerData.customerKpp}
-            onChange={handleChange}
-            maxLength={9} // Ограничение длины
-          />
-          <input
-            type="text"
-            placeholder="Юридический адрес"
-            name="customerLegalAddress"
-            value={customerData.customerLegalAddress}
-            onChange={handleChange}
-            maxLength={100} // Ограничение длины
-          />
-          <input
-            type="text"
-            placeholder="Почтовый адрес"
-            name="customerPostalAddress"
-            value={customerData.customerPostalAddress}
-            onChange={handleChange}
-            maxLength={100} // Ограничение длины
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            name="customerEmail"
-            value={customerData.customerEmail}
-            onChange={handleChange}
-          />
-          <label>
-            Организация:
+      
+      <div>
+        <input
+          type="text"
+          placeholder="Введите customerCodeMain для поиска"
+          value={customerCodeMain}
+          onChange={(e) => setCustomerCodeMain(e.target.value)}
+        />
+        <button onClick={fetchCustomerData} disabled={loading}>
+          {loading ? "Загрузка..." : "Загрузить данные клиента"}
+        </button>
+      </div>
+
+      
+      {customerData.customerCode && !customerUpdated && (
+        <div>
+          <h3>Информация о клиенте</h3>
+
+          <div>
+            <label>Код клиента:</label>
             <input
-              type="checkbox"
-              name="isOrganization"
-              checked={customerData.isOrganization}
+              type="text"
+              name="customerCode"
+              value={customerData.customerCode}
               onChange={handleChange}
             />
-          </label>
-          <label>
-            Физическое лицо:
+          </div>
+
+         
+          <div>
+            <label>Имя клиента:</label>
             <input
-              type="checkbox"
-              name="isPerson"
-              checked={customerData.isPerson}
+              type="text"
+              name="customerName"
+              value={customerData.customerName}
               onChange={handleChange}
             />
-          </label>
-          <button onClick={updateCustomer}>Обновить клиента</button>
+            {errors.customerName && <p className="error">{errors.customerName}</p>}
+          </div>
+
+          
+          <div>
+            <label>ИНН:</label>
+            <input
+              type="text"
+              name="customerInn"
+              value={customerData.customerInn}
+              onChange={handleChange}
+            />
+            {errors.customerInn && <p className="error">{errors.customerInn}</p>}
+          </div>
+
+          
+          <div>
+            <label>КПП:</label>
+            <input
+              type="text"
+              name="customerKpp"
+              value={customerData.customerKpp}
+              onChange={handleChange}
+            />
+          </div>
+
+          
+          <div>
+            <label>Юридический адрес:</label>
+            <input
+              type="text"
+              name="customerLegalAddress"
+              value={customerData.customerLegalAddress}
+              onChange={handleChange}
+            />
+          </div>
+
+          
+          <div>
+            <label>Почтовый адрес:</label>
+            <input
+              type="text"
+              name="customerPostalAddress"
+              value={customerData.customerPostalAddress}
+              onChange={handleChange}
+            />
+          </div>
+
+          
+          <div>
+            <label>Email:</label>
+            <input
+              type="email"
+              name="customerEmail"
+              value={customerData.customerEmail}
+              onChange={handleChange}
+            />
+          </div>
+
+          
+          <div>
+            <label>
+              Организация:
+              <input
+                type="checkbox"
+                name="isOrganization"
+                checked={customerData.isOrganization}
+                onChange={handleChange}
+              />
+            </label>
+          </div>
+
+         
+          <div>
+            <label>
+              Физическое лицо:
+              <input
+                type="checkbox"
+                name="isPerson"
+                checked={customerData.isPerson}
+                onChange={handleChange}
+              />
+            </label>
+          </div>
+
+          
+          <button onClick={updateCustomerData}>Обновить клиента</button>
         </div>
       )}
+
+      
+      {customerUpdated && <p>Данные клиента обновлены успешно!</p>}
     </div>
   );
 };
